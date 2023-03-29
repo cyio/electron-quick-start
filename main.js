@@ -13,7 +13,7 @@ function createWindow() {
       // nodeIntegration: true,
       // sandbox: false,
       // enableRemoteModule: true,
-      // contextIsolation: false, // Electron 12+ webview page context 与 preload node context 隔离，会访问到不同的 window
+      contextIsolation: false, // Electron 12+ webview page context 与 preload node context 隔离，会访问到不同的 window
       preload: path.join(__dirname, 'preload.js')
     }
   })
