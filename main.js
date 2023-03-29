@@ -8,12 +8,22 @@ function createWindow() {
     width: 800,
     height: 600,
     webPreferences: {
+      webviewTag: true,
+      // nodeIntegrationInSubFrames: true,
+      // nodeIntegration: true,
+      // sandbox: false,
+      // enableRemoteModule: true,
+      // contextIsolation: false, // Electron 12+ webview page context 与 preload node context 隔离，会访问到不同的 window
       preload: path.join(__dirname, 'preload.js')
     }
   })
 
-  win.loadFile('index.html')
+  ipcMain.handle('ping', () => 'pong')
+
+  // win.loadFile('index.html')
+  win.loadFile('webview.html')
   win.webContents.openDevTools()
+  // win.open('https://baidu.com', '_blank', 'top=500,left=200,frame=false,nodeIntegration=no')
 }
 
 const iconName = path.join(__dirname, 'iconForDragAndDrop.png');
@@ -54,3 +64,6 @@ app.on('activate', () => {
     createWindow()
   }
 })
+
+
+

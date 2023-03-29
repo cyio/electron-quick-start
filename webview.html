@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Hello World!</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+</head>
+<body>
+    <h3>webview</h3>
+    <div id="info"></div>
+    <!-- src="./embed.html" -->
+    <webview
+        id="foo"
+        src="https://lcnvsp.csb.app/"
+        preload="insert.js"
+        style="display:inline-flex; width:750px; height:calc(100vh - 5px)"
+        webpreferences="contextIsolation=no"
+    >
+    <!-- nodeintegrationinsubframes="true" -->
+    </webview>
+    <!-- https://codesandbox.io/s/webview-embed-lcnvsp?file=/src/index.js -->
+    <script src="./renderer-webview.js"></script>
+</body>
+</html>
