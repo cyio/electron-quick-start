@@ -22,3 +22,12 @@ contextBridge.exposeInMainWorld('versions', {
 // window.nativeQuery = nativeQuery;
 
 console.log('preload.js')
+// 在contextBridge中暴露ipcRenderer，以确保安全性
+contextBridge.exposeInMainWorld('ipcRenderer', {
+  send: (channel, data) => {
+    ipcRenderer.send(channel, data);
+  },
+  receive: (channel, func) => {
+    ipcRenderer.on(channel, (event, ...args) => func(...args));
+  }
+});
