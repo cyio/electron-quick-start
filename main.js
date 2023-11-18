@@ -20,10 +20,14 @@ function createWindow() {
 
   ipcMain.handle('ping', () => 'pong')
 
-  // win.loadFile('index.html')
-  win.loadFile('webview.html')
+  win.loadFile('index.html')
+  // win.loadFile('webview.html')
   win.webContents.openDevTools()
   // win.open('https://baidu.com', '_blank', 'top=500,left=200,frame=false,nodeIntegration=no')
+
+  win.webContents.on('did-finish-load', () => {
+    // win.webContents.send('shared-data', '');
+  });
 }
 
 const tempDir = path.join(__dirname, './temp-files')
@@ -46,6 +50,11 @@ https.get('https://player.alicdn.com/video/aliyunmedia.mp4', (response) => {
   response.pipe(bigFile);
 });
 
+const imageData = getImageData(); // 这是一个自定义函数，用于获取RGBA数据
+// global.sharedData = {
+//   imageData
+// };
+
 app.whenReady().then(createWindow)
 
 fs.readFile('./README.md', 'utf8', (err, data) => {
@@ -53,7 +62,7 @@ fs.readFile('./README.md', 'utf8', (err, data) => {
     console.error(err)
     return
   }
-  console.log(data)
+  // console.log(data)
 })
 
 
@@ -66,6 +75,7 @@ ipcMain.on('drag-start', (event, filePath) => {
 
 // 监听从渲染进程发送过来的请求
 ipcMain.on('get-image-data', (event) => {
+
   // 在这里处理获取RGBA数据的逻辑
   const imageData = getImageData(); // 这是一个自定义函数，用于获取RGBA数据
   event.reply('image-data', imageData);
@@ -102,3 +112,8 @@ function getImageData() {
   return { width, height, data: rgbaData };
 }
 
+// 监听渲染进程请求数据的事件
+ipcMain.on('request-data', (event) => {
+  const dataToTransfer = imageData /* 大量数据，可能是一个数组或其他结构 */;
+  event.sender.send('response-data', dataToTransfer);
+});

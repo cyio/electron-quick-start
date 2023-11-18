@@ -4,7 +4,19 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('electron', {
   startDrag: (fileName) => {
     ipcRenderer.send('drag-start', fileName)
-  }
+  },
+  requestMainData: () => {
+    return new Promise((resolve) => {
+      ipcRenderer.send('request-data');
+      ipcRenderer.once('response-data', (event, data) => {
+        resolve(data);
+      });
+    });
+  },
+  // getImageData: () => {
+  //   return ipcRenderer.sendSync('getGlobalVariable');
+  //   // return global;
+  // }
 })
 
 contextBridge.exposeInMainWorld('versions', {
