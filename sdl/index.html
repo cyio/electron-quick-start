@@ -1,0 +1,42 @@
+<!-- sdl.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            background-color: transparent;
+        }
+        #sdl-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="sdl-container">
+        <h1>sdl</h1>
+    </div>
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        // SDL 初始化和渲染代码
+        function initSDL() {
+            // 这里初始化您的 SDL 内容
+            // ...
+        }
+
+        // 发送位置更新到主进程
+        function updatePosition(x, y) {
+            ipcRenderer.send('update-sdl-position', { x, y });
+        }
+
+        // 初始化时设置默认位置
+        document.addEventListener('DOMContentLoaded', () => {
+            initSDL();
+            // 设置默认位置（例如左上角）
+            updatePosition(0, 0);
+        });
+    </script>
+</body>
+</html>

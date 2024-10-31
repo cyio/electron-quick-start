@@ -18,9 +18,24 @@ function createWindow() {
     }
   })
 
+  // 创建 SDL 子窗口
+  const sdlWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    frame: false, // 无边框窗口
+    transparent: false,
+    parent: win, // 设置父窗口
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  });
+
   ipcMain.handle('ping', () => 'pong')
 
   win.loadFile('index.html')
+  sdlWindow.loadFile('sdl/index.html')
+  // setupEventHandlers(win, sdlWindow);
   // win.loadFile('webview.html')
   win.webContents.openDevTools()
   // win.open('https://baidu.com', '_blank', 'top=500,left=200,frame=false,nodeIntegration=no')
@@ -89,7 +104,7 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
+    // createWindow()
   }
 })
 
@@ -117,3 +132,40 @@ ipcMain.on('request-data', (event) => {
   const dataToTransfer = imageData /* 大量数据，可能是一个数组或其他结构 */;
   event.sender.send('response-data', dataToTransfer);
 });
+
+function setupEventHandlers(mainWindow, sdlWindow) {
+  // 处理主窗口移动
+  mainWindow.on('move', () => {
+    if (!isDragging) {
+      const [x, y] = mainWindow.getPosition();
+      sdlWindow.setPosition(x + offset.x, y + offset.y);
+    }
+  });
+
+  // 处理主窗口最小化
+  mainWindow.on('minimize', () => {
+    sdlWindow.minimize();
+  });
+
+  // 处理主窗口恢复
+  mainWindow.on('restore', () => {
+    sdlWindow.restore();
+  });
+
+  // 处理主窗口关闭
+  mainWindow.on('close', () => {
+    sdlWindow.close();
+  });
+
+  // 监听 SDL 窗口位置更新请求
+  ipcMain.on('update-sdl-position', (event, position) => {
+    offset = position;
+    const [mainX, mainY] = mainWindow.getPosition();
+    sdlWindow.setPosition(mainX + position.x, mainY + position.y);
+  });
+
+  // 处理 SDL 窗口焦点
+  sdlWindow.on('focus', () => {
+    mainWindow.focus();
+  });
+}
