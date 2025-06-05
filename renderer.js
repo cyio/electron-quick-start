@@ -28,6 +28,39 @@ document.getElementById('drag2').ondragstart = (event) => {
   window.electron.startDrag('drag-and-drop-2.md')
 }
 
+// 初始化鼠标坐标传输
+function initMouseCoordinatesTransfer() {
+  // 创建MessageChannel
+  const messageChannel = new MessageChannel();
+  const port1 = messageChannel.port1;
+  const port2 = messageChannel.port2;
+
+  // 将port2发送给主进程
+  window.postMessage('trans-port', '*', [port2]);
+  
+  // 获取显示鼠标坐标的元素
+  const mouseCoordinatesElement = document.getElementById('mouse-coordinates');
+  
+  // 监听鼠标移动事件
+  document.addEventListener('mousemove', (event) => {
+    const coordinates = {
+      x: event.clientX,
+      y: event.clientY
+    };
+    
+    // 更新页面上的鼠标坐标显示
+    mouseCoordinatesElement.textContent = `鼠标坐标: x=${coordinates.x}, y=${coordinates.y}`;
+    
+    // 发送鼠标坐标到主进程
+    port1.postMessage(coordinates);
+  });
+  
+  console.log('鼠标坐标传输已初始化');
+}
+
+// 页面加载完成后初始化鼠标坐标传输
+document.addEventListener('DOMContentLoaded', initMouseCoordinatesTransfer);
+
 // document.getElementById('open-1').onclick = () => {
     // window.open('https://baidu.com')
 // }

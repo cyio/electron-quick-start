@@ -43,3 +43,14 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     ipcRenderer.on(channel, (event, ...args) => func(...args));
   }
 });
+
+function listenChannelPort() {
+   // port 类型必须用 message channel 传递（带 message 的方法）
+    window.onmessage = function (e) {
+        if (e.data === 'trans-port') {
+            const port = e.ports[0];
+            ipcRenderer.postMessage('mainprocess:trans-port', null, [port]);
+        }
+    };
+}
+listenChannelPort();

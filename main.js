@@ -3,6 +3,9 @@ const path = require('path')
 const fs = require('fs')
 const https = require('https')
 
+// 存储上一次接收鼠标坐标的时间
+let lastMouseEventTime = null;
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 800,
@@ -19,22 +22,47 @@ function createWindow() {
   })
 
   // 创建 SDL 子窗口
-  const sdlWindow = new BrowserWindow({
-    width: 400,
-    height: 300,
-    frame: false, // 无边框窗口
-    transparent: false,
-    parent: win, // 设置父窗口
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
-    }
+  // const sdlWindow = new BrowserWindow({
+  //   width: 400,
+  //   height: 300,
+  //   frame: false, // 无边框窗口
+  //   transparent: false,
+  //   parent: win, // 设置父窗口
+  //   webPreferences: {
+  //     nodeIntegration: true,
+  //     contextIsolation: false
+  //   }
+  // });
+
+  // 监听MessageChannel
+  ipcMain.on('mainprocess:trans-port', (e) => {
+    // 获取port2
+    const [port] = e.ports;
+    
+    // 监听port2上的消息
+    port.on('message', (event) => {
+      const currentTime = Date.now();
+      const coordinates = event.data;
+      
+      // 计算时间间隔
+      let timeInterval = 0;
+      if (lastMouseEventTime) {
+        timeInterval = currentTime - lastMouseEventTime;
+      }
+      lastMouseEventTime = currentTime;
+      
+      // 打印鼠标坐标和时间间隔
+      // console.log(`鼠标坐标: x=${coordinates.x}, y=${coordinates.y}, 时间间隔: ${timeInterval}ms`);
+    });
+    
+    // 开始接收消息
+    port.start();
   });
 
   ipcMain.handle('ping', () => 'pong')
 
   win.loadFile('index.html')
-  sdlWindow.loadFile('sdl/index.html')
+  // sdlWindow.loadFile('sdl/index.html')
   // setupEventHandlers(win, sdlWindow);
   // win.loadFile('webview.html')
   win.webContents.openDevTools()
