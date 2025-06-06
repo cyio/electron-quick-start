@@ -41,18 +41,25 @@ function createWindow() {
     
     // 监听port2上的消息
     port.on('message', (event) => {
-      const currentTime = Date.now();
-      const coordinates = event.data;
-      
-      // 计算时间间隔
-      let timeInterval = 0;
-      if (lastMouseEventTime) {
-        timeInterval = currentTime - lastMouseEventTime;
+      const message = event.data;
+      if (message.type === 'mouse-coordinates') {
+        const currentTime = Date.now();
+        const coordinates = message.data;
+        
+        // 计算时间间隔
+        let timeInterval = 0;
+        if (lastMouseEventTime) {
+          timeInterval = currentTime - lastMouseEventTime;
+        }
+        lastMouseEventTime = currentTime;
+        
+        // 打印鼠标坐标和时间间隔
+        // console.log(`鼠标坐标: x=${coordinates.x}, y=${coordinates.y}, 时间间隔: ${timeInterval}ms`);
+      } else if (message.type === 'large-data-request') {
+        // 处理大数据请求
+        // const imageData = getImageData(); // 这是一个自定义函数，用于获取RGBA数据
+        port.postMessage({ type: 'large-data-response', data: imageData });
       }
-      lastMouseEventTime = currentTime;
-      
-      // 打印鼠标坐标和时间间隔
-      // console.log(`鼠标坐标: x=${coordinates.x}, y=${coordinates.y}, 时间间隔: ${timeInterval}ms`);
     });
     
     // 开始接收消息
@@ -120,7 +127,7 @@ ipcMain.on('drag-start', (event, filePath) => {
 ipcMain.on('get-image-data', (event) => {
 
   // 在这里处理获取RGBA数据的逻辑
-  const imageData = getImageData(); // 这是一个自定义函数，用于获取RGBA数据
+  // const imageData = getImageData(); // 这是一个自定义函数，用于获取RGBA数据
   event.reply('image-data', imageData);
 });
 
@@ -139,8 +146,10 @@ app.on('activate', () => {
 
 // 模拟获取RGBA数据的函数，实际中应该根据你的需求进行处理
 function getImageData() {
-  const width = 5000; // 图片宽度
-  const height = 5000; // 图片高度
+  // const width = 5000; // 图片宽度 100MB
+  // const height = 5000; // 图片高度
+  const width = 3840; // 4K 宽度 32MB
+  const height = 2160; // 4K 高度
   const rgbaData = Buffer.alloc(width * height * 4); // 每个像素4字节
 
   // 在这里可以根据需要填充RGBA数据
