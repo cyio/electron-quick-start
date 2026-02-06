@@ -6,6 +6,30 @@
 console.log('test_preload.js loaded');
 
 // ============================================================
+// 4K 图像 SharedArrayBuffer (静态，按需渲染)
+// ============================================================
+
+const k4Width = 3840;
+const k4Height = 2160;
+const k4BufferSize = k4Width * k4Height * 4;
+const k4SharedBuffer = new SharedArrayBuffer(k4BufferSize);
+const k4Data = new Uint8ClampedArray(k4SharedBuffer);
+
+window.shared4KBuffer = k4SharedBuffer;
+window.shared4KSpecs = { width: k4Width, height: k4Height };
+
+// 生成 4K 静态图像 (与 main.js 保持统一：随机颜色)
+function generate4KImage() {
+  for (let i = 0; i < k4Width * k4Height * 4; i += 4) {
+    k4Data[i] = Math.floor(Math.random() * 256);       // R
+    k4Data[i + 1] = Math.floor(Math.random() * 256);   // G
+    k4Data[i + 2] = Math.floor(Math.random() * 256);   // B
+    k4Data[i + 3] = 255;                               // Alpha
+  }
+  console.log('preload: 4K image generated, size:', k4BufferSize, 'bytes');
+}
+
+// ============================================================
 // MVP: SharedArrayBuffer 零拷贝图像传输
 // ============================================================
 
@@ -52,6 +76,7 @@ function updateFrame() {
 }
 
 // 启动更新循环
+generate4KImage(); // 生成 4K 静态图像
 updateFrame();
 
 console.log('test_preload: SharedArrayBuffer initialized, size:', bufferSize, 'bytes');

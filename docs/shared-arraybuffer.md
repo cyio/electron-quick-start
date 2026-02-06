@@ -121,6 +121,118 @@ renderFromSharedBuffer();
 | `contextBridge API can only be used when contextIsolation is enabled` | `contextBridge` 要求 `contextIsolation: true` | 为 SharedArrayBuffer 创建独立的 preload 文件，不使用 `contextBridge` |
 | `SharedArrayBuffer is not defined` | Electron 默认禁用，且需要安全头 | 设置 `webPreferences.sharedArrayBuffer: true` |
 | `Failed to construct 'ImageData': The provided Uint8ClampedArray value must not be shared` | `ImageData` 构造时不接受 SharedArrayBuffer 的数组 | 先用普通 `Uint8ClampedArray` 创建 `ImageData`，渲染时用 `data.set()` 拷贝共享内存数据 |
+| `new Uint8ClampedArray(Buffer)` 耗时 15ms+，而 `new Uint8ClampedArray(SharedArrayBuffer)` 接近 0ms | Buffer 需要分配新内存并拷贝数据；SharedArrayBuffer 只需创建视图 | 主进程使用 `Uint8Array` 替代 `Buffer`，渲染进程检测类型后直接复用 |
+| Canvas/DOM/对象创建开销大 | 每次渲染都 `createElement`、`getContext`、`new ImageData` | 复用 Canvas、Context、ImageData 对象，只测量 `data.set()` + `putImageData` |
+
+---
+
+## 性能优化实践
+
+### 1. 数据类型优化：避免二次拷贝
+
+```javascript
+// ❌ 错误：主进程使用 Buffer
+const rgbaData = Buffer.alloc(width * height * 4);
+
+// ✅ 正确：主进程使用 Uint8Array
+const rgbaData = new Uint8Array(width * height * 4);
+```
+
+渲染进程接收后检测类型：
+
+```javascript
+// ❌ 错误：直接转换 Buffer
+const imageDataArray = new Uint8ClampedArray(data);
+
+// ✅ 正确：如果是 Uint8Array 直接复用
+let imageDataArray;
+if (data instanceof Uint8Array) {
+  imageDataArray = data; // 零拷贝复用
+} else {
+  imageDataArray = new Uint8ClampedArray(data); // Buffer 才需要转换
+}
+```
+
+### 2. 对象复用：减少 GC 压力
+
+```javascript
+let reuseCanvas;
+let reuseContext;
+let reuseImageData;
+
+function getReuseCanvas(width, height) {
+  if (!reuseCanvas || reuseCanvas.width !== width || reuseCanvas.height !== height) {
+    reuseCanvas = document.createElement('canvas');
+    reuseCanvas.width = width;
+    reuseCanvas.height = height;
+    reuseContext = reuseCanvas.getContext('2d', { willReadFrequently: true });
+    reuseImageData = new ImageData(new Uint8ClampedArray(width * height * 4), width, height);
+  }
+  return { canvas: reuseCanvas, context: reuseContext };
+}
+```
+
+### 3. 公平的基准测试
+
+测量时应只关注核心操作，剔除无关开销：
+
+```javascript
+// ❌ 错误：包含对象创建
+console.time('render');
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+const imageData = new ImageData(...);
+ctx.putImageData(imageData, 0, 0);
+console.timeEnd('render');
+
+// ✅ 正确：只测量数据拷贝和渲染
+console.time('render');
+imageData.data.set(sourceArray); // 数据拷贝
+ctx.putImageData(imageData, 0, 0); // 绘制
+console.timeEnd('render');
+```
+
+### 4. 实测数据对比 (4K 图像 31.64MB)
+
+| 路径 | 总耗时 | create-uint8 | data.set() | putImageData |
+|------|--------|--------------|------------|--------------|
+| SharedArrayBuffer | ~10ms | ~0ms | 快 | 快 |
+| IPC (优化后 Uint8Array) | ~10ms | ~0ms | 快 | 快 |
+| IPC (原 Buffer) | ~20ms+ | ~15ms | 快 | 快 |
+
+**结论**：IPC + Uint8Array 优化后，与 SharedArrayBuffer 性能基本持平。
+
+---
+
+## 关键结论：IPC 无法满足即时渲染需求
+
+实测数据证明：**IPC / MessagePort 传输 4K 图像（31.64MB）耗时会大幅超过 16ms（实时渲染要求）**
+
+```
+# MessagePort 传输耗时
+requestMainDataByPort: 37ms
+
+# IPC (requestMainData) 传输耗时
+requestMainData: 50ms
+```
+
+### 为什么 IPC 这么慢？
+
+1. **序列化/反序列化**：主进程 → 渲染进程，需要将数据序列化为字节流
+2. **内存拷贝**：数据在进程间传递时必须复制
+3. **线程切换开销**：跨进程通信的固有延迟
+
+### 解决方案：SharedArrayBuffer 共享内存
+
+```
+Preload (共享内存) → 渲染进程 (零拷贝访问)
+           ↓
+        Canvas 绘制
+           ↓
+      总耗时 ~10ms ✅
+```
+
+**结论**：要实现 60fps 即时渲染（16ms/帧），**必须使用 SharedArrayBuffer 共享内存方式**，避免任何跨进程数据传输。
 
 ---
 
@@ -129,4 +241,6 @@ renderFromSharedBuffer();
 * **低延迟**：Preload 对 `sharedArray` 的任何修改，窗口渲染时会立即反应出来，不需要通过 `postMessage` 传递大数据。
 * **架构简单**：避开了 Electron 主进程与渲染进程之间的 IPC 序列化性能瓶颈（IPC 通常会慢 1/3 左右）。
 * **最小化拷贝**：虽然 `ImageData` 需要一次 `set()` 拷贝，但复用同一 buffer，开销很小。
+
+如果数据源不是能直接创建视图的格式（比如 Node buffer），还是会引入 10-15ms 左右的一个拷贝开销，但这个不在 SharedArrayBuffer 的范畴，属于额外的优化空间。
 

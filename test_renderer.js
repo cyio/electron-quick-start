@@ -43,6 +43,47 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Renderer: SharedArrayBuffer rendering started.');
 
     // ============================================================
+    // 4K 图像渲染测试 (SharedArrayBuffer)
+    // ============================================================
+
+    const k4Canvas = document.getElementById('4k-canvas');
+    const k4Ctx = k4Canvas.getContext('2d', { willReadFrequently: true });
+    let k4ImageData; // 复用 ImageData 对象
+
+    document.getElementById('4k-image-button').addEventListener('click', () => {
+        console.log('Renderer: Rendering 4K image from SharedArrayBuffer...');
+        console.time('render-4k-image');
+
+        if (window.shared4KBuffer && window.shared4KSpecs) {
+            const { width, height } = window.shared4KSpecs;
+            const byteLength = width * height * 4;
+
+            console.log('Renderer: 4K image specs:', { width, height, byteLength, mb: (byteLength / 1024 / 1024).toFixed(2) + 'MB' });
+
+            // 首次创建 ImageData
+            if (!k4ImageData) {
+                const buffer = new Uint8ClampedArray(byteLength);
+                k4ImageData = new ImageData(buffer, width, height);
+            }
+
+            // 从 SharedArrayBuffer 拷贝数据
+            console.time('sab-create-uint8');
+            const sharedArray = new Uint8ClampedArray(window.shared4KBuffer);
+            console.timeEnd('sab-create-uint8');
+
+            console.time('sab-data-set');
+            k4ImageData.data.set(sharedArray);
+            console.timeEnd('sab-data-set');
+
+            // 绘制到 Canvas
+            console.time('sab-putImageData');
+            k4Ctx.putImageData(k4ImageData, 0, 0);
+            console.timeEnd('sab-putImageData');
+            console.timeEnd('render-4k-image');
+        }
+    });
+
+    // ============================================================
     // 原有的 MessageChannel 测试代码
     // ============================================================
 

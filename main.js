@@ -166,7 +166,7 @@ function getImageData() {
   // const height = 5000; // 图片高度
   const width = 3840; // 4K 宽度 32MB
   const height = 2160; // 4K 高度
-  const rgbaData = Buffer.alloc(width * height * 4); // 每个像素4字节
+  const rgbaData = new Uint8Array(width * height * 4); // 使用 Uint8Array 避免渲染进程二次拷贝
 
   // 在这里可以根据需要填充RGBA数据
   for (let i = 0; i < width * height * 4; i += 4) {

@@ -53,6 +53,16 @@
     <div id="status" style="margin-top: 20px; border: 1px solid #ccc; padding: 10px; min-height: 50px;">Waiting for test...</div>
 
     <!-- ===================================================== -->
+    <!-- 4K 图像渲染测试 (SharedArrayBuffer) -->
+    <!-- ===================================================== -->
+    <div class="section">
+        <h2>🖼️ 4K 图像渲染测试 (SharedArrayBuffer)</h2>
+        <button id="4k-image-button">Render 4K Image</button>
+        <canvas id="4k-canvas" width="3840" height="2160" style="height: auto; border: 2px solid #28a745;"></canvas>
+        <p style="font-size: 12px; color: #666;">点击按钮从 Preload 共享内存渲染 4K (3840x2160) 图像</p>
+    </div>
+
+    <!-- ===================================================== -->
     <!-- MVP: SharedArrayBuffer 零拷贝渲染测试 -->
     <!-- ===================================================== -->
     <div class="section">

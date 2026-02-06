@@ -53,7 +53,6 @@ function initMessageChannel() {
     } else if (message.type === 'large-data-response') {
       // 处理大数据响应
       console.timeEnd('requestMainDataByPort');
-      console.time('render-image-data');
       renderImageData(message.data);
     }
   };
@@ -91,7 +90,6 @@ document.getElementById('large-data-transfer').onclick = async () => {
   console.time('requestMainData');
   const mainData = await window.electron.requestMainData();
   console.timeEnd('requestMainData');
-  console.time('render-image-data')
   renderImageData(mainData);
 }
 
@@ -100,7 +98,6 @@ window.ipcRenderer.receive('image-data', (imageData) => {
   // 在这里处理接收到的RGBA数据
   // console.log('Received RGBA data in renderer process:', imageData);
   console.timeEnd('get-image-data')
-  console.time('render-image-data')
 
   // 这里可以进行其他操作，例如将RGBA数据渲染到Canvas上
   renderImageData(imageData);
@@ -116,18 +113,67 @@ document.getElementById('large-data-transfer-message').onclick = () => {
 };
 
 
-// 示例：将RGBA数据渲染到Canvas上
+// ============================================================
+// 复用 Canvas 和 ImageData 对象 (用于公平测量)
+// ============================================================
+
+let reuseCanvas;
+let reuseContext;
+let reuseImageData;
+
+function getReuseCanvas(width, height) {
+  if (!reuseCanvas || reuseCanvas.width !== width || reuseCanvas.height !== height) {
+    reuseCanvas = document.createElement('canvas');
+    reuseCanvas.width = width;
+    reuseCanvas.height = height;
+    reuseCanvas.style.border = '2px solid #e74c3c';
+    reuseCanvas.style.marginTop = '10px';
+    document.body.appendChild(reuseCanvas);
+    reuseContext = reuseCanvas.getContext('2d', { willReadFrequently: true });
+    reuseImageData = null;
+    console.log('Renderer: Created reuse canvas', width, 'x', height);
+  }
+  return { canvas: reuseCanvas, context: reuseContext };
+}
+
+// 示例：将RGBA数据渲染到Canvas上 (复用对象，科学测量)
 function renderImageData(imageData) {
-  console.log('Received data in renderer process:', imageData);
-  const canvas = document.createElement('canvas');
-  canvas.width = imageData.width;
-  canvas.height = imageData.height;
-  document.body.appendChild(canvas);
+  console.time('render-image-data')
+  // console.log('Received data in renderer process:', imageData);
+  const { width, height, data } = imageData;
+  const byteLength = data.length;
 
-  const context = canvas.getContext('2d');
-  const imageDataArray = new Uint8ClampedArray(imageData.data);
-  const newImageData = new ImageData(imageDataArray, imageData.width, imageData.height);
+  console.log('Renderer: IPC image specs:', { width, height, byteLength, mb: (byteLength / 1024 / 1024).toFixed(2) + 'MB' });
 
-  context.putImageData(newImageData, 0, 0);
-  console.timeEnd('render-image-data')
+  // 复用或创建 Canvas 和 Context
+  const { canvas, context } = getReuseCanvas(width, height);
+
+  // 复用或创建 ImageData (公平测量：只计算数据拷贝和渲染)
+  if (!reuseImageData) {
+    const buffer = new Uint8ClampedArray(byteLength);
+    reuseImageData = new ImageData(buffer, width, height);
+    console.log('Renderer: Created reuse ImageData');
+  }
+
+  // 数据拷贝 + 渲染
+  console.time('ipc-create-uint8');
+  // 如果数据已经是 Uint8Array（IPC 传过来），可以直接复用
+  let imageDataArray;
+  if (data instanceof Uint8Array) {
+    imageDataArray = data; // 零拷贝复用
+    console.log('Renderer: Reused Uint8Array (zero-copy from IPC)');
+  } else {
+    imageDataArray = new Uint8ClampedArray(data); // Buffer 需要转换
+  }
+  console.timeEnd('ipc-create-uint8');
+
+  console.time('ipc-data-set');
+  reuseImageData.data.set(imageDataArray);
+  console.timeEnd('ipc-data-set');
+
+  console.time('ipc-putImageData');
+  context.putImageData(reuseImageData, 0, 0);
+  console.timeEnd('ipc-putImageData');
+
+  console.timeEnd('render-image-data');
 }
