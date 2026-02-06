@@ -86,3 +86,10 @@ https://chatgpt.com/share/68425348-68e4-8008-8ce5-184b2c0dc211
 4K 图上 32MB 
 44ms
 21ms
+
+## 原生模块 + 必须关闭沙箱 + contextIsolation
+
+这样渲染进程才能直接 require('./native.node') 并访问 ArrayBuffer。
+
+[查看更详细的 Electron 安全模型与内存访问说明](./docs/shared-buffer.md)
+

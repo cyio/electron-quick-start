@@ -1,4 +1,10 @@
 const { app, BrowserWindow, ipcMain, nativeImage, NativeImage } = require('electron')
+
+// Log uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
 const path = require('path')
 const fs = require('fs')
 const https = require('https')
@@ -74,6 +80,11 @@ function createWindow() {
   // win.loadFile('webview.html')
   win.webContents.openDevTools()
   // win.open('https://baidu.com', '_blank', 'top=500,left=200,frame=false,nodeIntegration=no')
+  
+  // Log renderer process crashes
+  win.webContents.on('crashed', (event, killed) => {
+    console.error(`Renderer process crashed. Killed: ${killed}`, event);
+  });
 
   win.webContents.on('did-finish-load', () => {
     // win.webContents.send('shared-data', '');
@@ -122,6 +133,11 @@ ipcMain.on('drag-start', (event, filePath) => {
     icon: iconName,
   })
 })
+
+// Listen for errors from the renderer process
+ipcMain.on('renderer-error', (event, error) => {
+  console.error('Error from renderer process:', error);
+});
 
 // 监听从渲染进程发送过来的请求
 ipcMain.on('get-image-data', (event) => {

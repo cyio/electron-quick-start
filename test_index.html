@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Minimal Crash Test</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+</head>
+<body>
+    <h1>MessageChannel Bug Demonstration</h1>
+    <p>Use the buttons below to test different communication methods via MessageChannel.</p>
+    
+    <button id="ping-button">1. Run Ping-Pong Test</button>
+    <p style="font-size: 12px;">This sends a simple string and should succeed, proving the channel is open.</p>
+    
+    <hr>
+    
+    <button id="arraybuffer-button">2. Run ArrayBuffer Transfer Test</button>
+    <p style="font-size: 12px;">This attempts to transfer an ArrayBuffer. In buggy Electron versions, this will fail in the main process.</p>
+    
+    <div id="status" style="margin-top: 20px; border: 1px solid #ccc; padding: 10px; min-height: 50px;">Waiting for test...</div>
+    <script src="test_renderer.js"></script>
+</body>
+</html>

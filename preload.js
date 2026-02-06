@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { ipcRenderer, contextBridge } = require('electron')
 
 // 桥接渲染进程与主进程
 contextBridge.exposeInMainWorld('electron', {
@@ -54,3 +54,20 @@ function listenChannelPort() {
     };
 }
 listenChannelPort();
+
+
+// This is the correct and safe way to set up the MessageChannel.
+// The renderer process will create the channel and send one of the ports
+// to this preload script via a window.postMessage event.
+window.addEventListener('message', (event) => {
+  // We validate that this is the event we're looking for.
+  if (event.source === window && event.data === 'port-transfer') {
+    const [port] = event.ports;
+    // Once we have the port, we send it to the main process.
+    // This is the only way to safely transfer a MessagePort to the main process.
+    ipcRenderer.postMessage('mainprocess:trans-port', null, [port]);
+    console.log('Preload: Port received and forwarded to main process.');
+  }
+});
+
+console.log('Preload script loaded and ready to listen for port.');
