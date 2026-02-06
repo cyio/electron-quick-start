@@ -4,6 +4,39 @@
     <meta charset="UTF-8">
     <title>Minimal Crash Test</title>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #status {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            min-height: 50px;
+            background-color: #f9f9f9;
+        }
+        /* SharedArrayBuffer 渲染区域 */
+        #shared-canvas {
+            border: 2px solid #007bff;
+            margin-top: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
     <h1>MessageChannel Bug Demonstration</h1>
@@ -18,6 +51,17 @@
     <p style="font-size: 12px;">This attempts to transfer an ArrayBuffer. In buggy Electron versions, this will fail in the main process.</p>
     
     <div id="status" style="margin-top: 20px; border: 1px solid #ccc; padding: 10px; min-height: 50px;">Waiting for test...</div>
+
+    <!-- ===================================================== -->
+    <!-- MVP: SharedArrayBuffer 零拷贝渲染测试 -->
+    <!-- ===================================================== -->
+    <div class="section">
+        <h2>🎨 SharedArrayBuffer Zero-Copy Test</h2>
+        <p>Preload 进程持续更新共享内存，渲染进程直接读取并渲染：</p>
+        <canvas id="shared-canvas" width="192" height="108"></canvas>
+        <p style="font-size: 12px; color: #666;">动态渐变效果 - 证明零拷贝共享内存正常工作</p>
+    </div>
+
     <script src="test_renderer.js"></script>
 </body>
 </html>

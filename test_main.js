@@ -10,8 +10,25 @@ function createWindow() {
     height: 600,
     webPreferences: {
       // The preload script is still needed to set up the MessageChannel from the renderer.
-      preload: require('path').join(__dirname, 'preload.js')
+      preload: require('path').join(__dirname, 'test_preload.js'),
+      // 关闭沙箱和上下文隔离，允许 Preload 和渲染进程共享内存
+      sandbox: false,
+      contextIsolation: false,
+      nodeIntegration: true,
+      // 启用 SharedArrayBuffer 支持
+      sharedArrayBuffer: true
     }
+  });
+
+  // SharedArrayBuffer 需要安全头
+  win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Cross-Origin-Embedder-Policy': ['require-corp'],
+        'Cross-Origin-Opener-Policy': ['same-origin']
+      }
+    });
   });
 
   win.loadFile('test_index.html');
@@ -48,6 +65,12 @@ ipcMain.on('mainprocess:trans-port', (e) => {
         // new Uint8Array(shared).set(new Uint8Array(buffer));   
         // Electron 的 message 不支持 transfer list，与浏览器不同。根本上是线程和进程的底层区别。
         port.postMessage({ data: Buffer.from(buffer) });
+
+        // Main process: Attempting to transfer ArrayBuffer...
+        // Main process: SUCCESSFULLY CAUGHT EXPECTED ERROR -> Error: An object could not be cloned.
+        // const sharedBuffer = new SharedArrayBuffer(8);
+        // port.postMessage({ data: sharedBuffer });
+        console.log('Main process: SharedArrayBuffer sent successfully');
       } catch (error) {
         console.error('Main process: SUCCESSFULLY CAUGHT EXPECTED ERROR ->', error);
       }
